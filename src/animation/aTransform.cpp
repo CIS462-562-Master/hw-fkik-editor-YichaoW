@@ -1,5 +1,20 @@
 #include "aTransform.h"
+#include <Eigen/Dense>
 #pragma warning(disable : 4244)
+
+Eigen::Matrix4d getHomoMatrix(const ATransform& a) {
+	Eigen::Matrix4d homo = Eigen::Matrix4d::Identity();
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			homo(i, j) = a.m_rotation[i][j];
+		}
+	}
+	for (int i = 0; i < 3; i++) {
+		homo(i, 3) = a.m_translation[i];
+	}
+	return homo;
+
+}
 
 ATransform::ATransform() : m_rotation(IdentityMat3), m_translation(vec3Zero)
 {
@@ -29,32 +44,48 @@ ATransform& ATransform::operator = (const ATransform& orig)
 ATransform ATransform::Inverse() const
 {
 	// TODO: compute the inverse of a transform given the current rotation and translation components
-	return ATransform();
+	ATransform inv;
+	inv.m_rotation = m_rotation.Transpose();
+	inv.m_translation = -1 * inv.m_rotation * m_translation;
+
+	return inv;
 }
 
 
 vec3 ATransform::RotTrans(const vec3& vecToTransform) const
 {
 	// TODO: Transform the input vector based on this transform's rotation and translation components
-	return vec3();
+	return m_rotation * vecToTransform + m_translation;
 }
 
 vec3 ATransform::Rotate(const vec3& vecToTransform) const
 {
 	// TODO: Transform the input direction based on this transform's rotation component
-	return vec3();
+	return m_rotation * vecToTransform;
 }
 
 vec3 ATransform::Translate(const vec3& vecToTransform) const
 {
 	// TODO: Transform the input vector based on this transform's translation component	
-	return vec3();
+	return m_translation + vecToTransform;
 }
 
 ATransform operator * (const ATransform& H1, const ATransform& H2)
 {
 	// TODO: implement the equivalent of multiplying  H1 and H2 transformation matrices and return the result
-	return ATransform();
+	ATransform result;
+	Eigen::Matrix4d homo1 = getHomoMatrix(H1);
+	Eigen::Matrix4d homo2 = getHomoMatrix(H2);
+	Eigen::Matrix4d homo = homo1 * homo2;
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			result.m_rotation[i][j] = homo(i, j);
+		}
+	}
+	for (int i = 0; i < 3; i++) {
+		result.m_translation[i] = homo(i, 3);
+	}
+	return result;
 }
 
 vec3 operator * (const ATransform& A, const vec3& v)
