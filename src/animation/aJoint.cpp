@@ -216,10 +216,14 @@ void AJoint::updateTransform()
 		mLocal2Global = mLocal2Parent;
 	}
 	else {
-		mLocal2Global = mParent->mLocal2Global * mLocal2Global;
-
+		mLocal2Global = mParent->mLocal2Global * mLocal2Parent;
+		//mLocal2Global.m_rotation = mParent->mLocal2Global.m_rotation * mLocal2Parent.m_rotation;
 	}
 	// TODO: Update children
+	std::cout << "id : " << getID() << "contains " << mChildren.size() << "\n";
+	for (AJoint *j : mChildren) {
+		j->updateTransform();
+	}
 }
 
 void AJoint::Attach(AJoint* pParent, AJoint* pChild)

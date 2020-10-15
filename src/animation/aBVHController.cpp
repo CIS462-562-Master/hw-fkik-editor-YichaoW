@@ -56,13 +56,16 @@ void BVHController::update(double time, bool updateRootXZTranslation)
 	// 1. set the local transforms at each Skeleton joint using the cached spline data in member variables mRootMotion and mMotion 
 	// 2. update the joint transforms of the full skeleton in order to compute the global transforms at each joint
 	// Hint: the root can both rotate and translate (i.e. has 6 DOFs) while all the other joints just rotate 
+	//std::cout << time << "\n";
+
 	vec3 pos = mRootMotion.getValue(time);
+
 	if (!updateRootXZTranslation) {
 		pos[0] = 0;
 		pos[2] = 0;
 	}
+
 	mSkeleton->getRootNode()->setLocalTranslation(pos);
-	mSkeleton->getRootNode()->setGlobalTranslation(pos);
 	for (int i = 0; i < mSkeleton->getNumJoints(); i++) {
 		mat3 r = mMotion[i].getCachedValue(time).ToRotation();
 		mSkeleton->getJointByID(i)->setLocalRotation(r);
@@ -264,7 +267,6 @@ void BVHController::loadFrame(std::ifstream& inFile)
         {
             mRootMotion.appendKey(t, vec3(tx, ty, tz), false);
         }
-
         quat q = ComputeBVHRot(r1, r2, r3, pJoint->getRotationOrder());
         mMotion[i].appendKey(t, q, false);
     }

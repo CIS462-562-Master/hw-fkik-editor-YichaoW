@@ -124,8 +124,8 @@ void ASkeleton::clear()
 
 void updateTransform(AJoint *j) {
 	j->updateTransform();
-	int count = j->getNumChildren();
-	for (int i = 0; i < count; i++) {
+	std::cout << j->getNumChildren() << "\n";
+	for (int i = 0; i < j->getNumChildren(); i++) {
 		AJoint *child = j->getChildAt(i);
 		updateTransform(child);
 	}
@@ -136,7 +136,8 @@ void ASkeleton::update()
 	if (!mRoot) return; // Nothing loaded
 
 	// TODO: Update Joint Transforms recursively, starting at the root
-	updateTransform(mRoot);
+	//updateTransform(mRoot);
+	mRoot->updateTransform();
 
 }
 

@@ -74,7 +74,7 @@ ATransform operator * (const ATransform& H1, const ATransform& H2)
 {
 	// TODO: implement the equivalent of multiplying  H1 and H2 transformation matrices and return the result
 	ATransform result;
-	Eigen::Matrix4d homo1 = getHomoMatrix(H1);
+/*	Eigen::Matrix4d homo1 = getHomoMatrix(H1);
 	Eigen::Matrix4d homo2 = getHomoMatrix(H2);
 	Eigen::Matrix4d homo = homo1 * homo2;
 	for (int i = 0; i < 3; i++) {
@@ -84,7 +84,12 @@ ATransform operator * (const ATransform& H1, const ATransform& H2)
 	}
 	for (int i = 0; i < 3; i++) {
 		result.m_translation[i] = homo(i, 3);
-	}
+	}*/
+
+	mat3 rotation = H1.m_rotation * H2.m_rotation;
+	vec3 translation = H1.m_rotation * H2.m_translation + H1.m_translation;
+	result.m_rotation = rotation;
+	result.m_translation = translation;
 	return result;
 }
 
