@@ -2,19 +2,6 @@
 #include <Eigen/Dense>
 #pragma warning(disable : 4244)
 
-Eigen::Matrix4d getHomoMatrix(const ATransform& a) {
-	Eigen::Matrix4d homo = Eigen::Matrix4d::Identity();
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			homo(i, j) = a.m_rotation[i][j];
-		}
-	}
-	for (int i = 0; i < 3; i++) {
-		homo(i, 3) = a.m_translation[i];
-	}
-	return homo;
-
-}
 
 ATransform::ATransform() : m_rotation(IdentityMat3), m_translation(vec3Zero)
 {
@@ -74,18 +61,6 @@ ATransform operator * (const ATransform& H1, const ATransform& H2)
 {
 	// TODO: implement the equivalent of multiplying  H1 and H2 transformation matrices and return the result
 	ATransform result;
-/*	Eigen::Matrix4d homo1 = getHomoMatrix(H1);
-	Eigen::Matrix4d homo2 = getHomoMatrix(H2);
-	Eigen::Matrix4d homo = homo1 * homo2;
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			result.m_rotation[i][j] = homo(i, j);
-		}
-	}
-	for (int i = 0; i < 3; i++) {
-		result.m_translation[i] = homo(i, 3);
-	}*/
-
 	mat3 rotation = H1.m_rotation * H2.m_rotation;
 	vec3 translation = H1.m_rotation * H2.m_translation + H1.m_translation;
 	result.m_rotation = rotation;
