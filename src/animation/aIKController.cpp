@@ -133,7 +133,21 @@ AIKchain IKController::createIKchain(int endJointID, int desiredChainSize, ASkel
 	// add the corresponding skeleton joint pointers to the AIKChain "chain" data member starting with the end joint
 	// desiredChainSize = -1 should create an IK chain of maximum length (where the last chain joint is the joint before the root joint)
 	// also add weight values to the associated AIKChain "weights" data member which can be used in a CCD IK implemention
-	return AIKchain();
+	AIKchain chain;
+	std::vector<AJoint*> joints;
+	std::vector<double> weights;
+	AJoint *joint = pSkeleton->getJointByID(endJointID);
+	AJoint *root = pSkeleton->getRootNode();
+	int count = 0;
+	while (joint->getID() != root->getID() && count != desiredChainSize) {
+		joints.push_back(joint);
+		weights.push_back(0.1);
+		joint = joint->getParent();
+		count++;
+	}
+	chain.setChain(joints);
+	chain.setWeights(weights);
+	return chain;
 }
 
 
@@ -145,9 +159,10 @@ bool IKController::IKSolver_Limb(int endJointID, const ATarget& target)
 	// copy transforms from base skeleton
 	mIKSkeleton.copyTransforms(m_pSkeleton);
 
-	if (!mvalidLimbIKchains || createLimbIKchains())
+	if (!mvalidLimbIKchains)
 	{
-		return false;
+		mvalidLimbIKchains = createLimbIKchains();
+		if (!mvalidLimbIKchains) { return false; }
 	}
 
 	vec3 desiredRootPosition;
@@ -234,6 +249,40 @@ int IKController::computeLimbIK(ATarget target, AIKchain& IKchain, const vec3 mi
 	// TODO: Implement the analytic/geometric IK method assuming a three joint limb  
 	// The actual position of the end joint should match the target position within some episilon error 
 	// the variable "midJointAxis" contains the rotation axis for the middle joint
+	std::vector<AJoint*> joints = IKchain.getChain();
+	vec3 pd = target.getGlobalTranslation();
+	double rd = (pd - joints[2]->getGlobalTranslation()).Length();
+	double l1 = joints[1]->getLocalTranslation().Length();
+	double l2 = joints[2]->getLocalTranslation().Length();
+
+	double val = (pow(l1, 2) + pow(l2, 2) - pow(rd, 2)) / (2 * l1 * l2);
+	if (val > 1) {
+		val = 1;
+	}
+	else if (val < -1) {
+		val = -1;
+	}
+	double phi = acos(val);
+	double theta1 = asin( l2 * sin(phi) / rd);
+	double theta2 = M_PI - phi;
+
+	double pitch = asin(pd[1] / rd);
+	double yaw = acos(pd[0] / (rd * cos(pitch)));
+	double roll = 0;
+
+	mat3 r10, temp, r21;
+	r21.FromAxisAngle(midJointAxis, theta2);
+
+	vec3 r = joints[0]->getGlobalTranslation() - joints[2]->getGlobalTranslation();
+	vec3 t = target.getGlobalTranslation() - joints[2]->getGlobalTranslation();
+	vec3 axis = joints[2]->getGlobalRotation().Inverse() * ((r.Cross(t)).Normalize());
+	double angle = acos(t * r / (t.Length() * r.Length()));
+	r10.FromAxisAngle(axis, angle);
+
+	joints[1]->setLocalRotation(r21);
+	joints[2]->setLocalRotation(joints[2]->getLocalRotation() * r10);
+	//joints[0]->setLocalRotation((joints[1]->getGlobalRotation() * joints[2]->getGlobalRotation()).Inverse() * target.getGlobalRotation());
+
 	return true;
 }
 
@@ -342,6 +391,43 @@ int IKController::computeCCDIK(ATarget target, AIKchain& IKchain, ASkeleton* pIK
 	// 3. compute desired change to local rotation matrix
 	// 4. set local rotation matrix to new value
 	// 5. update transforms for joint and all children
+
+	AJoint *endJoint = IKchain.getJoint(0);
+	AJoint* baseJoint = IKchain.getJoint(IKchain.getSize() - 1);
+
+	for (int i = 0; i < gIKmaxIterations; i++) {
+
+		AJoint *joint = endJoint->getParent();
+		while (joint != baseJoint->getParent()) {
+			// 1
+			vec3 e = target.getGlobalTranslation() - endJoint->getGlobalTranslation();
+			vec3 r = endJoint->getGlobalTranslation() - joint->getGlobalTranslation();
+
+			if (e.Length() < gIKEpsilon) {
+				return true;
+			}
+			vec3 axis = (r.Cross(e)).Normalize();
+			double angle = (r.Cross(e).Length()) / (r * r + r * e);
+
+			// 2
+			axis = joint->getGlobalRotation().Transpose() * axis;
+			angle *= mWeight0;
+
+			// 3
+			mat3 R;
+			R.FromAxisAngle(axis, angle);
+
+			//4
+			joint->setLocalRotation(joint->getLocalRotation() * R);
+
+			//5
+			joint->updateTransform();
+
+
+			joint = joint->getParent();
+
+		}
+	}
 	return true;
 }
 
