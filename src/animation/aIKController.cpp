@@ -407,20 +407,19 @@ int IKController::computeCCDIK(ATarget target, AIKchain& IKchain, ASkeleton* pIK
 				return true;
 			}
 			vec3 axis = (r.Cross(e)).Normalize();
-			double angle = (r.Cross(e).Length()) / (r * r + r * e);
+			double angle = mWeight0 * (r.Cross(e).Length()) / (r * r + r * e);
 
 			// 2
 			axis = joint->getGlobalRotation().Transpose() * axis;
-			angle *= mWeight0;
 
 			// 3
 			mat3 R;
 			R.FromAxisAngle(axis, angle);
 
-			//4
+			// 4
 			joint->setLocalRotation(joint->getLocalRotation() * R);
 
-			//5
+			// 5
 			joint->updateTransform();
 
 
