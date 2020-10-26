@@ -146,7 +146,11 @@ void AActor::solveFootIK(float leftHeight, float rightHeight, bool rotateLeft, b
 		leftTarget.setGlobalTranslation(leftPos);
 		m_IKController->IKSolver_Limb(m_IKController->mLfootID, leftTarget);
 
-		leftFoot->setLocalRotation(mat3(axisX, leftNormal, leftNormal.Cross(axisX)));
+
+		vec3 right = leftFoot->getLocalRotation().GetCol(0);
+		vec3 up = (leftFoot->getLocal2Global().Inverse() * leftNormal).Normalize();
+		leftFoot->setLocalRotation(mat3(right, up, up.Cross(right)));
+
 	}
 	if (rotateRight)
 	{
@@ -157,7 +161,10 @@ void AActor::solveFootIK(float leftHeight, float rightHeight, bool rotateLeft, b
 		rightTarget.setGlobalTranslation(rightPos);
 		m_IKController->IKSolver_Limb(m_IKController->mRfootID, rightTarget);
 
-		rightFoot->setLocalRotation(mat3(axisX, rightNormal, rightNormal.Cross(axisX)));
+		vec3 right = rightFoot->getLocalRotation().GetCol(0);
+		vec3 up = (rightFoot->getLocal2Global().Inverse() * rightNormal).Normalize();
+		rightFoot->setLocalRotation(mat3(right, up, up.Cross(right)));
+
 	}
 	m_pSkeleton->update();
 }
